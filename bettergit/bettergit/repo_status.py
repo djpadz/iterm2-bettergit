@@ -1,10 +1,10 @@
 import json
 from dataclasses import asdict, dataclass
-from pathlib import Path
 from typing import Optional
 
 from .config import get_config
 from .logger import logger
+from .utils import MyPathLike
 
 LICENSE = """
 Copyright 2023 Dj Padzensky
@@ -42,19 +42,19 @@ THE POSSIBILITY OF SUCH DAMAGE.
 class RepoStatus:
     session_id: str
     fetching: bool = False
-    repo_root: Optional[Path] = None
-    push_count: Optional[int] = None
-    pull_count: Optional[int] = None
-    current_branch: Optional[str] = None
-    dirty: Optional[bool] = None
-    untracked: Optional[int] = None
-    modified: Optional[int] = None
-    staged: Optional[int] = None
-    deleted: Optional[int] = None
-    stashes: Optional[int] = None
-    state: Optional[str] = None
-    step: Optional[int] = None
-    total: Optional[int] = None
+    repo_root: MyPathLike | None = None
+    push_count: int | None = None
+    pull_count: int | None = None
+    current_branch: str | None = None
+    dirty: bool | None = None
+    untracked: int | None = None
+    modified: int | None = None
+    staged: int | None = None
+    deleted: int | None = None
+    stashes: int | None = None
+    state: str | None = None
+    step: int | None = None
+    total: int | None = None
 
     def render(self) -> str | list[str]:
         logger.debug("%s: rendering %s", self.session_id, self)
@@ -66,10 +66,8 @@ class RepoStatus:
                 status_line += f" ({self.step}/{self.total})"
             return status_line
         parts: list[str] = []
-        logger.debug("%s: 1", self.session_id)
-        part = get_config("icon_status_fetching") if self.fetching else ""
+        part = get_config("icon_fetching") if self.fetching else ""
         parts.append(part)
-        logger.debug("%s: 2", self.session_id)
         part = ""
         if self.dirty:
             part += get_config("icon_status_dirty")
@@ -78,16 +76,14 @@ class RepoStatus:
         else:
             part += get_config("icon_status_clean")
         part += f" {self.current_branch}"
-        logger.debug("%s: 2a", self.session_id)
-        logger.debug("%s: 2a: %s %s", self.session_id, self.push_count, self.pull_count)
+        logger.debug(
+            "%s: push: %s pull: %s", self.session_id, self.push_count, self.pull_count
+        )
         if self.push_count and self.push_count > 0:
             part += " " + get_config("icon_push_count") + f" {self.push_count}"
-        logger.debug("%s: 2b", self.session_id)
         if self.pull_count and self.pull_count > 0:
             part += " " + get_config("icon_pull_count") + f" {self.pull_count}"
-        logger.debug("%s: 2c", self.session_id)
         parts.append(part.strip())
-        logger.debug("%s: 3", self.session_id)
         part = ""
         if self.modified and self.modified > 0:
             part += " " + get_config("icon_modified_count") + f" {self.modified}"
@@ -96,21 +92,20 @@ class RepoStatus:
         if self.deleted:
             part += " " + get_config("icon_deleted_count") + f" {self.deleted}"
         parts.append(part.strip())
-        logger.debug("%s: 4", self.session_id)
         part = ""
         if self.staged:
             part += " " + get_config("icon_staged_count") + f" {self.staged}"
         if self.stashes:
             part += " " + get_config("icon_stashes_count") + f" {self.stashes}"
         parts.append(part.strip())
-        logger.debug("%s: 5a: %s", self.session_id, parts)
+        logger.debug("%s: parts: %s", self.session_id, parts)
         parts = [part for part in parts if part != ""]
-        logger.debug("%s: 5b: %s", self.session_id, parts)
+        logger.debug("%s: parts+: %s", self.session_id, parts)
         ret = [
             " \N{LEFT VERTICAL BOX LINE} ".join(parts[0:x])
             for x in range(1, len(parts) + 1)
         ]
-        logger.debug("%s: 6: %s", self.session_id, ret)
+        logger.debug("%s: rendered parts: %s", self.session_id, ret)
         return ret
 
     def to_json(self) -> str:
@@ -119,7 +114,7 @@ class RepoStatus:
     @classmethod
     def from_json(cls, json_str: str) -> Optional["RepoStatus"]:
         logger.info("from_json: %s", json_str)
-        if json_str is None or not json_str.startswith("{"):
+        if not json_str.startswith("{"):
             return None
         return cls(**json.loads(json_str))
 

@@ -31,14 +31,13 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-CONFIG_DEFAULTS = {
-    "debug": False,
+CONFIG_DEFAULTS: dict[str, str] = {
     "git_binary": "/usr/bin/git",
     "icon_fetching": "\N{WATCH}",
-    "icon_status_other": "\u203C\uFE0F",  # Red double exclamation mark
-    "icon_status_dirty": "\U0001F534",  # Red circle
-    "icon_status_push_or_pull": "\U0001F7E1",  # Yellow circle
-    "icon_status_clean": "\U0001F7E2",  # Green circle
+    "icon_status_other": "\u203c\ufe0f",  # Red double exclamation mark
+    "icon_status_dirty": "\U0001f534",  # Red circle
+    "icon_status_push_or_pull": "\U0001f7e1",  # Yellow circle
+    "icon_status_clean": "\U0001f7e2",  # Green circle
     "icon_push_count": "\N{UPWARDS BLACK ARROW}",
     "icon_pull_count": "\N{DOWNWARDS BLACK ARROW}",
     "icon_modified_count": "\N{LOWER RIGHT PENCIL}",
@@ -49,18 +48,18 @@ CONFIG_DEFAULTS = {
 }
 
 
-RUNNING_CONFIG = {}
+RUNNING_CONFIG: dict[str, str] = {}
 
 
 def get_config_default(item: str):
     return CONFIG_DEFAULTS[item]
 
 
-def get_config(item: str):
+def get_config(item: str) -> str:
     return RUNNING_CONFIG.get(item, CONFIG_DEFAULTS[item])
 
 
-def set_config(item: str, value):
+def set_config(item: str, value: str):
     RUNNING_CONFIG[item] = value
 
 
@@ -68,7 +67,7 @@ def set_config(item: str, value):
 class StringKnobConfig:
     key: str
     name: str
-    placeholder: str = None
+    placeholder: str | None = None
 
 
 STRING_KNOB_CONFIGS: list[StringKnobConfig] = [
