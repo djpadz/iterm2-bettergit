@@ -106,11 +106,22 @@ jobs:
         run: |
           next="${{ steps.version.outputs.next }}"
           prev="${{ steps.version.outputs.previous }}"
-          notes_args=(--generate-notes)
+          notes="$RUNNER_TEMP/notes.md"
           if git rev-parse -q --verify "refs/tags/$prev" >/dev/null; then
-            notes_args+=(--notes-start-tag "$prev")
+            range="$prev..$next"
+          else
+            range="$next"
           fi
-          url=$(gh release create "$next" bettergit.its --title "$next" "${notes_args[@]}")
+          {
+            echo "## Changes"
+            echo
+            git log --no-merges --invert-grep --grep="^Release $next\$" --format='- %s (%h)' "$range"
+            if [ "$range" != "$next" ]; then
+              echo
+              echo "**Full changelog**: ${{ github.server_url }}/${{ github.repository }}/compare/$prev...$next"
+            fi
+          } > "$notes"
+          url=$(gh release create "$next" bettergit.its --title "$next" --notes-file "$notes")
           echo "Released [$next]($url)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Clean up keychain
