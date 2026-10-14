@@ -70,7 +70,8 @@ jobs:
           security set-keychain-settings -lut 21600 "$keychain"
           security unlock-keychain -p "$keychain_pw" "$keychain"
           security import "$p12" -k "$keychain" -P "$SIGNING_CERTIFICATE_PASSWORD" -f pkcs12 -A
-          security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$keychain"
+          # The .p12 may already include the WWDR intermediate, in which case this import is a duplicate.
+          security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$keychain" || echo "WWDR intermediate already present"
           security set-key-partition-list -S apple-tool:,apple:,unsigned: -s -k "$keychain_pw" "$keychain" >/dev/null
           # shellcheck disable=SC2046 # existing keychain paths are intentionally word-split
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
