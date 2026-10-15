@@ -7,7 +7,7 @@ from .app_globals import TRIGGER_VAR, app_globals
 from .git_poller import GitPoller
 from .logger import logger
 from .repo_status import RepoStatus
-from .utils import find_git_root
+from .utils import find_git_roots
 
 
 async def _session_trigger(repo_status: RepoStatus):
@@ -35,7 +35,7 @@ async def _poll(poller: GitPoller) -> None:
     if cwd is None:
         return
     logger.debug("%s: Finding git root (was %s)", session_id, poller.repo_root)
-    poller.repo_root = find_git_root(cwd)
+    poller.repo_root, _ = find_git_roots(cwd)
     logger.debug("%s: Git root at %s", session_id, poller.repo_root)
     if poller.repo_root is None:
         logger.debug("%s: No git root found", session_id)

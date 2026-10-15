@@ -10,7 +10,7 @@ from typing import Any
 from .config import get_config
 from .logger import logger
 from .repo_status import RepoStatus
-from .utils import MyPathLike
+from .utils import MyPathLike, find_git_roots
 
 LICENSE = """
 Copyright 2023 Dj Padzensky
@@ -103,7 +103,7 @@ class GitPoller:
     @repo_root.setter
     def repo_root(self, value: MyPathLike | None):
         logger.debug("%s: Setting repo root to %s", self.session_id, value)
-        new_value = Path(value) if value is not None else None
+        new_value = Path(value).resolve() if value is not None else None
         if new_value != self._repo_root:
             logger.debug("%s: this is a change", self.session_id)
             self._time_to_clear_repo_status = True
@@ -268,7 +268,8 @@ class GitPoller:
 
     async def collect_repo_state(self) -> dict[str, int | str | None]:
         assert self.repo_root is not None
-        git_dir = self.repo_root / ".git"
+        _, git_dir = find_git_roots(self.repo_root)
+        assert git_dir is not None
         rebase_dir = git_dir / "rebase-merge"
         state = None
         step = None

@@ -28,7 +28,7 @@ sb_component = StatusBarComponent(
 @StatusBarRPC
 async def sb_component_callback(
     knobs: dict[str, str],
-    trigger: Reference = Reference(TRIGGER_VAR),  # noqa:B008
+    trigger: Reference = Reference(f"{TRIGGER_VAR}?"),  # noqa:B008
     session_id: Reference = Reference("id"),  # noqa:B008
 ) -> str | list[str]:
     logger.debug("%s: SB Wake up!", str(session_id))
