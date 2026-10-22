@@ -66,8 +66,6 @@ class RepoStatus:
                 status_line += f" ({self.step}/{self.total})"
             return status_line
         parts: list[str] = []
-        part = get_config("icon_fetching") if self.fetching else ""
-        parts.append(part)
         part = ""
         if self.dirty:
             part += get_config("icon_status_dirty")
@@ -101,6 +99,9 @@ class RepoStatus:
         logger.debug("%s: parts: %s", self.session_id, parts)
         parts = [part for part in parts if part != ""]
         logger.debug("%s: parts+: %s", self.session_id, parts)
+        if self.fetching:
+            part = get_config("icon_fetching")
+            parts.append(part)
         ret = [
             " \N{LEFT VERTICAL BOX LINE} ".join(parts[0:x])
             for x in range(1, len(parts) + 1)
