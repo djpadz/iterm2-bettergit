@@ -23,7 +23,12 @@ def find_git_roots(path: MyPathLike) -> tuple[Path, Path] | tuple[None, None]:
         elif (p / ".git").is_file():
             for line in (p / ".git").read_text().splitlines():
                 if line.startswith("gitdir:"):
-                    return (p, Path(line[len("gitdir:") :].strip()).resolve())
+                    # gitdir may be relative to the .git file (e.g. submodules)
+                    git_dir = (p / line[len("gitdir:") :].strip()).resolve()
+                    if not git_dir.is_dir():
+                        # stale pointer (e.g. a pruned worktree); git can't use it
+                        return (None, None)
+                    return (p, git_dir)
         elif not p.name:
             break
         p = p.parent

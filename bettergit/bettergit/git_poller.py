@@ -141,7 +141,7 @@ class GitPoller:
         if self._fetch_future is not None:
             await self._fetch_future
             self._fetch_future = None
-        _, stdout = await self._run_git_command("remote", "show")
+        _, stdout, _ = await self._run_git_command("remote", "show")
         if (
             stdout.strip()
             and (
@@ -164,7 +164,7 @@ class GitPoller:
 
     async def _run_command(
         self, command: str | MyPathLike, /, *args: str, cwd: MyPathLike
-    ) -> tuple[int, str]:
+    ) -> tuple[int, str, str]:
         logger.debug("%s: Running %s %s in %s", self.session_id, command, args, cwd)
         proc = await asyncio.create_subprocess_exec(
             command,
@@ -180,11 +180,11 @@ class GitPoller:
         logger.debug("%s: rc: %d", self.session_id, proc.returncode)
         logger.debug("%s: stdout: %s", self.session_id, stdout)
         logger.debug("%s: stderr: %s", self.session_id, stderr)
-        return proc.returncode, stdout.decode()
+        return proc.returncode, stdout.decode(), stderr.decode(errors="replace")
 
     async def _run_git_command(
         self, /, *args: str, cwd: MyPathLike | None = None
-    ) -> tuple[int, str]:
+    ) -> tuple[int, str, str]:
         if cwd is None:
             cwd = self.repo_root
         assert cwd is not None
@@ -209,11 +209,11 @@ class GitPoller:
         return int(Path(f).read_text(encoding="ascii").splitlines()[0].strip())
 
     async def collect_repo_counts(self) -> dict[str, int | bool]:
-        rc, stdout = await self._run_git_command(
+        rc, stdout, stderr = await self._run_git_command(
             "status", "--porcelain", "--ignore-submodules", "-unormal"
         )
         if rc != 0:
-            raise RuntimeError(f"git status failed: {stdout}")
+            raise RuntimeError(f"git status failed (rc={rc}): {stderr.strip()}")
         dirty = False
         untracked = 0
         modified = 0
@@ -242,22 +242,24 @@ class GitPoller:
         }
 
     async def collect_current_branch(self) -> dict[str, str]:
-        rc, stdout = await self._run_git_command("branch", "--show-current")
+        rc, stdout, _ = await self._run_git_command("branch", "--show-current")
         if rc == 0 and stdout != "":
             return {"current_branch": stdout.strip()}
-        rc, stdout = await self._run_git_command("rev-parse", "--short", "HEAD")
+        rc, stdout, stderr = await self._run_git_command(
+            "rev-parse", "--short", "HEAD"
+        )
         if rc == 0:
             return {"current_branch": f"[{stdout.strip()}]"}  # detached HEAD
-        raise RuntimeError(f"git branch failed: {stdout}")
+        raise RuntimeError(f"git branch failed (rc={rc}): {stderr.strip()}")
 
     async def collect_stashes(self) -> dict[str, int]:
-        rc, stdout = await self._run_git_command("stash", "list")
+        rc, stdout, stderr = await self._run_git_command("stash", "list")
         if rc != 0:
-            raise RuntimeError(f"git stash failed: {stdout}")
+            raise RuntimeError(f"git stash failed (rc={rc}): {stderr.strip()}")
         return {"stashes": len(stdout.splitlines())}
 
     async def collect_counts(self) -> dict[str, int]:
-        rc, stdout = await self._run_git_command(
+        rc, stdout, _ = await self._run_git_command(
             "rev-list", "--left-right", "--count", "HEAD...@{u}"
         )
         if rc == 0:
